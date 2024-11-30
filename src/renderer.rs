@@ -1,33 +1,38 @@
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
-// use sdl2::render::TextureCreator;
 use sdl2::render::TextureQuery;
 use sdl2::render::WindowCanvas;
 use sdl2::ttf;
 use sdl2::video::Window;
-use std::path::Path;
 use std::time::Instant;
 
 use crate::config;
 use crate::game_context;
 use crate::point;
 
-pub struct Renderer {
+pub struct Renderer<'font> {
     canvas: WindowCanvas,
     frame_count: u32,
     last_frame_time: Instant,
     fps: f32,
+    font: &'font ttf::Font<'font, 'font>
 }
 
-impl Renderer {
-    pub fn new(window: Window) -> Result<Renderer, String> {
+impl<'font> Renderer<'font> {
+    pub fn new(window: Window, font: &'font ttf::Font<'font, 'font>) -> Result<Renderer<'font>, String> {
         let canvas = window.into_canvas().build().map_err(|e| e.to_string())?;
 
         let frame_count: u32 = 0;
         let last_frame_time = Instant::now();
-        let fps:f32 = 0.0;
+        let fps: f32 = 0.0;
 
-        Ok(Renderer { canvas, frame_count, last_frame_time, fps })
+        Ok(Renderer {
+            canvas,
+            frame_count,
+            last_frame_time,
+            fps,
+            font,
+        })
     }
 
     fn draw_dot(&mut self, point: &point::Point) -> Result<(), String> {
@@ -60,7 +65,8 @@ impl Renderer {
         self.draw_background(context);
         self.draw_player(context)?;
         self.draw_food(context)?;
-        self.draw_text(context)?;
+        let height = self.draw_instructions(context)?;
+        self.draw_fps(context, height)?;
 
         self.canvas.present();
 
@@ -94,22 +100,14 @@ impl Renderer {
         Ok(())
     }
 
-    fn draw_text(&mut self, _context: &game_context::GameContext) -> Result<(), String> {
+    fn draw_instructions(&mut self, _context: &game_context::GameContext) -> Result<u32, String> {
         let texture_creator = self.canvas.texture_creator();
 
-        // Load a font
-        /* @TODO fix font initialization placement, should be on the constructor? */
-        let ttf_context = ttf::init().map_err(|e| e.to_string())?;
-        let font_path = Path::new("./inter-regular-18px.ttf");
-        let font_size = 16;
-        let mut font = ttf_context.load_font(font_path, font_size)?;
-        font.set_style(ttf::FontStyle::NORMAL);
-
-        let fps_text = format!("FPS: {:.2}fps", self.fps);
+        let text = "WASD to move. 'P' = play/pause. 'R' = restart. 'Esc' = exit.";
 
         // render a surface, and convert it to a texture bound to the canvas
-        let surface = font
-            .render(&fps_text)
+        let surface = &self.font
+            .render(&text)
             .blended(Color::RGBA(255, 255, 255, 125))
             .map_err(|e| e.to_string())?;
         let texture: sdl2::render::Texture<'_> = texture_creator
@@ -123,6 +121,34 @@ impl Renderer {
         self.canvas.set_draw_color(Color::RGBA(195, 217, 255, 255));
         self.canvas.copy(&texture, None, Some(target))?;
 
-        Ok(())
+        Ok(height)
+    }
+
+    fn draw_fps(
+        &mut self,
+        _context: &game_context::GameContext,
+        offset_height: u32,
+    ) -> Result<u32, String> {
+        let texture_creator = self.canvas.texture_creator();
+
+        let fps_text = format!("FPS: {:.2}fps", self.fps);
+
+        // render a surface, and convert it to a texture bound to the canvas
+        let surface = &self.font
+            .render(&fps_text)
+            .blended(Color::RGBA(255, 255, 255, 125))
+            .map_err(|e| e.to_string())?;
+        let texture: sdl2::render::Texture<'_> = texture_creator
+            .create_texture_from_surface(&surface)
+            .map_err(|e| e.to_string())?;
+
+        let TextureQuery { width, height, .. } = texture.query();
+
+        let target = Rect::new(6, offset_height as i32 + 4, width, height);
+
+        self.canvas.set_draw_color(Color::RGBA(195, 217, 255, 255));
+        self.canvas.copy(&texture, None, Some(target))?;
+
+        Ok(height)
     }
 }

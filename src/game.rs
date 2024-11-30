@@ -1,10 +1,15 @@
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
+use sdl2::ttf;
+use std::path::Path;
 use std::time::Duration;
 
 use crate::config;
 use crate::game_context;
 use crate::renderer;
+
+const FONT_PATH: &'static str = "./inter-regular-18px.ttf";
+const FONT_SIZE: u16 = 16;
 
 pub struct Game;
 
@@ -32,9 +37,19 @@ impl Game {
             .expect("Failed to create event pump");
 
         let mut context = game_context::GameContext::new();
-        let mut renderer = renderer::Renderer::new(window).expect("Failed to create renderer");
 
-        println!("WASD to move. P to play/pause. R to restart. Esc to close.");
+        let ttf_context = ttf::init()
+            .map_err(|e| e.to_string())
+            .expect("Failed to create TTF context");
+        let font_path = Path::new(FONT_PATH);
+        let mut font = ttf_context
+            .load_font(font_path, FONT_SIZE)
+            .map_err(|e| e.to_string())
+            .expect("Failed to create font");
+        font.set_style(ttf::FontStyle::NORMAL);
+
+        let mut renderer =
+            renderer::Renderer::new(window, &font).expect("Failed to create renderer");
 
         let mut tick_count = 0;
 
