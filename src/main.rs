@@ -34,7 +34,8 @@ fn main() {
 
     println!("WASD to move. P to play/pause. R to restart. Esc to close.");
 
-    let mut frame_counter = 0;
+    let mut tick_count = 0;
+
     'running: loop {
         for event in event_pump.poll_iter() {
             match event {
@@ -79,10 +80,10 @@ fn main() {
 
         ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 30));
 
-        frame_counter += 1;
-        if frame_counter % 2 == 0 {
+        tick_count += 1;
+        if tick_count % 2 == 0 {
             context.next_tick();
-            frame_counter = 0;
+            tick_count = 0;
         }
 
         renderer.draw(&context).expect("Failed to draw");

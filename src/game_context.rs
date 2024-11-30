@@ -27,10 +27,10 @@ pub struct GameContext {
 impl GameContext {
     pub fn new() -> GameContext {
         GameContext {
-            player_position: vec![point::Point(3, 1), point::Point(2, 1), point::Point(1, 1)],
+            player_position: vec![point::Point(3, 2), point::Point(2, 2), point::Point(1, 2)],
             player_direction: PlayerDirection::Right,
             state: GameState::Paused,
-            food: point::Point(3, 3),
+            food: point::Point(3, 4),
         }
     }
 
