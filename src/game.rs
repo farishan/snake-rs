@@ -3,11 +3,11 @@ use sdl2::keyboard::Keycode;
 use sdl2::ttf;
 use std::path::Path;
 use std::time::Duration;
-use sysinfo::System;
 
 use crate::config;
 use crate::game_context;
 use crate::renderer;
+use crate::renderer_dev;
 
 const FONT_PATH: &'static str = "./inter-regular-18px.ttf";
 const FONT_SIZE: u16 = 16;
@@ -48,14 +48,10 @@ pub struct Game;
 
 impl Game {
     pub fn new() {
-        let mut system = System::new_all();
-        let current_pid = sysinfo::Pid::from_u32(std::process::id());
-
         let sdl_context = sdl2::init().expect("Failed to initialize SDL2");
 
         let window_dev = create_window(&sdl_context, "Snake Game - Dev", false);
-        let mut wdid = window_dev.id();
-        let mut window_dev_opt = vec!(window_dev);
+        let wdid = window_dev.id();
 
         let window = create_window(&sdl_context, "Snake Game", true);
         let wid = window.id();
@@ -76,12 +72,14 @@ impl Game {
             .expect("Failed to create font");
         font.set_style(ttf::FontStyle::NORMAL);
 
-        let renderer =
-            renderer::Renderer::new(window, &font).expect("Failed to create renderer");
+        let renderer = renderer::Renderer::new(window, &font).expect("Failed to create renderer");
         let mut renderer = Some(renderer);
 
+        let renderer_dev =
+            renderer_dev::RendererDev::new(window_dev, &font).expect("Failed to create renderer");
+        let mut renderer_dev = Some(renderer_dev);
+
         let mut tick_count = 0;
-        let mut tick_count1 = 0;
 
         'mainloop: loop {
             for event in event_pump.poll_iter() {
@@ -102,8 +100,7 @@ impl Game {
                         if window_id == wid {
                             renderer = None;
                         } else if window_id == wdid {
-                            window_dev_opt.remove(0);
-                            wdid = 0;
+                            renderer_dev = None;
                         }
                     }
 
@@ -148,19 +145,12 @@ impl Game {
                 tick_count = 0;
             }
 
-            tick_count1 += 1;
-            if tick_count1 % 10 == 0 {
-                system.refresh_processes(sysinfo::ProcessesToUpdate::Some(&[current_pid]), true);
-                if let Some(process) = system.process(current_pid) {
-                    let used_memory = process.memory() as f32 / 1024.0 / 1024.0; // Convert to MiB
-
-                    println!("Program Memory Usage: {:.2} MiB", used_memory);
-                }
-                tick_count1 = 0;
-            }
-
             if let Some(renderer) = &mut renderer {
                 renderer.draw(&context).expect("Failed to draw");
+            }
+
+            if let Some(renderer_dev) = &mut renderer_dev {
+                renderer_dev.draw(&context).expect("Failed to draw");
             }
         }
     }
