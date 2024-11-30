@@ -8,7 +8,7 @@ use sdl2::video::Window;
 use std::path::Path;
 use std::time::Instant;
 
-use crate::constants;
+use crate::config;
 use crate::game_context;
 use crate::point;
 
@@ -33,10 +33,10 @@ impl Renderer {
     fn draw_dot(&mut self, point: &point::Point) -> Result<(), String> {
         let point::Point(x, y) = point;
         self.canvas.fill_rect(Rect::new(
-            x * constants::DOT_SIZE_IN_PXS as i32,
-            y * constants::DOT_SIZE_IN_PXS as i32,
-            constants::DOT_SIZE_IN_PXS,
-            constants::DOT_SIZE_IN_PXS,
+            x * config::DOT_SIZE_IN_PXS as i32,
+            y * config::DOT_SIZE_IN_PXS as i32,
+            config::DOT_SIZE_IN_PXS,
+            config::DOT_SIZE_IN_PXS,
         ))?;
 
         Ok(())

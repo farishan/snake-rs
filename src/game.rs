@@ -2,14 +2,14 @@ use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use std::time::Duration;
 
-use crate::constants;
+use crate::config;
 use crate::game_context;
 use crate::renderer;
 
-pub struct Game {}
+pub struct Game;
 
 impl Game {
-    pub fn run_game() {
+    pub fn new() {
         let sdl_context = sdl2::init().expect("Failed to initialize SDL2");
         let video_subsystem = sdl_context
             .video()
@@ -18,8 +18,8 @@ impl Game {
         let window = video_subsystem
             .window(
                 "Snake Game",
-                constants::GRID_X_SIZE * constants::DOT_SIZE_IN_PXS,
-                constants::GRID_Y_SIZE * constants::DOT_SIZE_IN_PXS,
+                config::GRID_X_SIZE * config::DOT_SIZE_IN_PXS,
+                config::GRID_Y_SIZE * config::DOT_SIZE_IN_PXS,
             )
             .position_centered()
             .opengl()

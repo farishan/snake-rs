@@ -1,6 +1,6 @@
 use rand::Rng;
 
-use crate::constants;
+use crate::config;
 use crate::point;
 
 pub enum GameState {
@@ -51,15 +51,15 @@ impl GameContext {
         };
 
         if next_head_position.0 < 0
-            || next_head_position.0 >= constants::GRID_X_SIZE as i32
+            || next_head_position.0 >= config::GRID_X_SIZE as i32
             || next_head_position.1 < 0
-            || next_head_position.1 >= constants::GRID_Y_SIZE as i32
+            || next_head_position.1 >= config::GRID_Y_SIZE as i32
         {
             self.state = GameState::Over
         } else if next_head_position.0 == self.food.0 && next_head_position.1 == self.food.1 {
             self.food = point::Point(
-                rand::thread_rng().gen_range(0..constants::GRID_X_SIZE as i32),
-                rand::thread_rng().gen_range(0..constants::GRID_Y_SIZE as i32),
+                rand::thread_rng().gen_range(0..config::GRID_X_SIZE as i32),
+                rand::thread_rng().gen_range(0..config::GRID_Y_SIZE as i32),
             );
         } else {
             self.player_position.pop();
