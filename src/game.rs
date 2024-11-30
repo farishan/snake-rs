@@ -3,6 +3,7 @@ use sdl2::keyboard::Keycode;
 use sdl2::ttf;
 use std::path::Path;
 use std::time::Duration;
+use sysinfo::System;
 
 use crate::config;
 use crate::game_context;
@@ -11,26 +12,53 @@ use crate::renderer;
 const FONT_PATH: &'static str = "./inter-regular-18px.ttf";
 const FONT_SIZE: u16 = 16;
 
-pub struct Game;
+fn create_window(sdl_context: &sdl2::Sdl, title: &str, is_centered: bool) -> sdl2::video::Window {
+    let video_subsystem = sdl_context
+        .video()
+        .expect("Failed to initialize the video subsystem");
 
-impl Game {
-    pub fn new() {
-        let sdl_context = sdl2::init().expect("Failed to initialize SDL2");
-        let video_subsystem = sdl_context
-            .video()
-            .expect("Failed to initialize the video subsystem");
+    let mut builder = video_subsystem.window(
+        title,
+        config::GRID_X_SIZE * config::DOT_SIZE_IN_PXS,
+        config::GRID_Y_SIZE * config::DOT_SIZE_IN_PXS,
+    );
 
-        let window = video_subsystem
-            .window(
-                "Snake Game",
-                config::GRID_X_SIZE * config::DOT_SIZE_IN_PXS,
-                config::GRID_Y_SIZE * config::DOT_SIZE_IN_PXS,
-            )
+    if is_centered {
+        let window = builder
             .position_centered()
             .opengl()
             .build()
             .map_err(|e| e.to_string())
             .expect("Failed to create window");
+
+        return window;
+    } else {
+        let window = builder
+            .position(0, 0)
+            .opengl()
+            .build()
+            .map_err(|e| e.to_string())
+            .expect("Failed to create window");
+
+        return window;
+    }
+}
+
+pub struct Game;
+
+impl Game {
+    pub fn new() {
+        let mut system = System::new_all();
+        let current_pid = sysinfo::Pid::from_u32(std::process::id());
+
+        let sdl_context = sdl2::init().expect("Failed to initialize SDL2");
+
+        let window_dev = create_window(&sdl_context, "Snake Game - Dev", false);
+        let mut wdid = window_dev.id();
+        let mut window_dev_opt = vec!(window_dev);
+
+        let window = create_window(&sdl_context, "Snake Game", true);
+        let wid = window.id();
 
         let mut event_pump = sdl_context
             .event_pump()
@@ -48,10 +76,12 @@ impl Game {
             .expect("Failed to create font");
         font.set_style(ttf::FontStyle::NORMAL);
 
-        let mut renderer =
+        let renderer =
             renderer::Renderer::new(window, &font).expect("Failed to create renderer");
+        let mut renderer = Some(renderer);
 
         let mut tick_count = 0;
+        let mut tick_count1 = 0;
 
         'mainloop: loop {
             for event in event_pump.poll_iter() {
@@ -61,6 +91,21 @@ impl Game {
                         keycode: Some(Keycode::Escape),
                         ..
                     } => break 'mainloop,
+
+                    Event::Window {
+                        win_event: sdl2::event::WindowEvent::Close,
+                        window_id,
+                        ..
+                    } => {
+                        println!("Window with ID {} received a close event!", window_id);
+
+                        if window_id == wid {
+                            renderer = None;
+                        } else if window_id == wdid {
+                            window_dev_opt.remove(0);
+                            wdid = 0;
+                        }
+                    }
 
                     Event::KeyDown {
                         keycode: Some(keycode),
@@ -103,7 +148,20 @@ impl Game {
                 tick_count = 0;
             }
 
-            renderer.draw(&context).expect("Failed to draw");
+            tick_count1 += 1;
+            if tick_count1 % 10 == 0 {
+                system.refresh_processes(sysinfo::ProcessesToUpdate::Some(&[current_pid]), true);
+                if let Some(process) = system.process(current_pid) {
+                    let used_memory = process.memory() as f32 / 1024.0 / 1024.0; // Convert to MiB
+
+                    println!("Program Memory Usage: {:.2} MiB", used_memory);
+                }
+                tick_count1 = 0;
+            }
+
+            if let Some(renderer) = &mut renderer {
+                renderer.draw(&context).expect("Failed to draw");
+            }
         }
     }
 }
